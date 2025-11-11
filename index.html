@@ -31,6 +31,7 @@
             top: 0;
             left: 0;
             padding: 0 5px;
+            pointer-events: none;
         }
 
         .slide {
@@ -49,6 +50,7 @@
             position: relative;
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
+            pointer-events: auto;
         }
 
         .slide.active {
@@ -223,6 +225,7 @@
             flex-wrap: wrap;
             justify-content: center;
             padding: 0 10px;
+            pointer-events: auto;
         }
 
         .nav-btn {
@@ -262,6 +265,7 @@
             width: 0%;
             transition: width 0.3s ease;
             z-index: 1001;
+            pointer-events: none;
         }
 
         .flow-chart {
@@ -343,7 +347,7 @@
         }
 
         .confidence-bar {
-            height: 25px;
+            height: 30px;
             border-radius: 15px;
             overflow: hidden;
             margin: 8px 0;
@@ -357,7 +361,7 @@
             padding-left: 15px;
             color: white;
             font-weight: 600;
-            font-size: 0.9em;
+            font-size: 1em;
         }
 
         .logo {
@@ -380,6 +384,7 @@
         @media (max-width: 768px) {
             .container {
                 padding: 0 5px;
+                pointer-events: none;
             }
 
             .slide {
@@ -390,6 +395,7 @@
                 border-radius: 15px;
                 overflow-y: auto;
                 overflow-x: hidden;
+                pointer-events: auto;
             }
 
             h1 {
@@ -452,6 +458,7 @@
             .navigation {
                 bottom: 15px;
                 gap: 10px;
+                pointer-events: auto;
             }
 
             .nav-btn {
@@ -499,7 +506,7 @@
             }
 
             .confidence-bar {
-                height: 30px;
+                height: 36px;
             }
 
             .confidence-fill {
@@ -523,6 +530,7 @@
                 height: 90vh;
                 max-height: 90vh;
                 overflow-y: auto;
+                pointer-events: auto;
             }
 
             h1 {
@@ -567,11 +575,13 @@
                 max-height: 95vh;
                 padding: 15px 20px;
                 overflow-y: auto;
+                pointer-events: auto;
             }
 
             .navigation {
                 bottom: 8px;
                 gap: 8px;
+                pointer-events: auto;
             }
 
             h1 {
@@ -1138,19 +1148,6 @@
                 }
             }
         }
-
-        // Ensure mouse wheel scrolling works properly within slides
-        document.querySelectorAll('.slide').forEach(slide => {
-            slide.addEventListener('wheel', function(e) {
-                // Allow natural scrolling within the slide
-                // Only prevent default if we want to add custom behavior
-                const atTop = slide.scrollTop === 0;
-                const atBottom = slide.scrollHeight - slide.scrollTop === slide.clientHeight;
-                
-                // Don't interfere with scrolling - let it work naturally
-                // This ensures mouse wheel and trackpad scrolling function properly
-            }, { passive: true });
-        });
 
         // Initialize
         showSlide(1);
