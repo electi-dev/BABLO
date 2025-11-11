@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BABLO - Behavioral Intelligence for Modern Brokers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .slide {
+            display: none;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 40px 50px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.5s ease-out;
+            position: relative;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        /* Custom scrollbar for slides */
+        .slide::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .slide::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 3em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        h3 {
+            font-size: 1.6em;
+            font-weight: 600;
+            color: #555;
+            margin: 25px 0 15px;
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.7;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .highlight {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .big-number {
+            font-size: 3.5em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            margin: 15px 0;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            margin: 15px 0;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: #f7f8fc;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        .icon {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 16px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            padding: 12px 25px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            z-index: 1001;
+        }
+
+        .flow-chart {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin: 30px 0;
+            padding: 25px;
+            background: #f7f8fc;
+            border-radius: 20px;
+        }
+
+        .flow-item {
+            text-align: center;
+            flex: 1;
+            padding: 15px;
+        }
+
+        .flow-arrow {
+            font-size: 1.8em;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .comparison-table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.1em;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 1em;
+        }
+
+        .comparison-table tr:hover {
+            background: #f7f8fc;
+        }
+
+        .check {
+            color: #4caf50;
+            font-size: 1.4em;
+        }
+
+        .cross {
+            color: #f44336;
+            font-size: 1.4em;
+        }
+
+        .confidence-bar {
+            height: 25px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 8px 0;
+            background: #f0f0f0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 1em;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 25px;
+                max-height: 90vh;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            h2 {
+                font-size: 1.6em;
+            }
+            p {
+                font-size: 1em;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <!-- Slide 1: Title -->
+    <div class="container">
+        <div class="slide active" id="slide1">
+            <div style="text-align: center;">
+                <div class="logo">B_ABLO</div>
+                <p class="subtitle">Behavioral Intelligence Operating System</p>
+                <h1 style="font-size: 2.5em; margin-top: 30px;">Your Dealers Make Decisions in Minutes</h1>
+                <h1 style="font-size: 2em;">AI Makes Them in Milliseconds</h1>
+                <p style="font-size: 1.3em; color: #666; margin: 25px 0;">
+                    The difference isn't execution speed.<br>
+                    It's <span class="highlight">decision speed</span> that determines winners.
+                </p>
+                <div class="stat-box" style="max-width: 650px; margin: 30px auto;">
+                    <span class="stat-number">1000x</span>
+                    <span class="stat-label">Faster decision-making with full regulatory compliance</span>
+                </div>
+                <p style="margin-top: 30px; font-size: 1.1em;">
+                    <strong>Transform decision latency into competitive advantage.</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: The Real Problem -->
+    <div class="container">
+        <div class="slide" id="slide2">
+            <h2>The Hidden Crisis: Decision Bottlenecks</h2>
+            <p style="font-size: 1.2em; color: #667eea; margin-bottom: 25px;">
+                Execution is fast. But decisions? That's where you're bleeding money.
+            </p>
+            
+            <div class="grid">
+                <div class="stat-box">
+                    <span class="icon">⏰</span>
+                    <span class="stat-label">Hours to change routing policies</span>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">👥</span>
+                    <span class="stat-label">Multiple dealers = inconsistent decisions</span>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">📊</span>
+                    <span class="stat-label">Manual analysis misses complex patterns</span>
+                </div>
+            </div>
+            
+            <h3>The Hidden Costs You Don't See:</h3>
+            <div class="flow-chart">
+                <div class="flow-item">
+                    <div class="icon">😴</div>
+                    <strong>Night Shift Errors</strong>
+                    <p style="font-size: 0.95em;">Performance drops after 6 hours</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">💸</div>
+                    <strong>Wrong Routes</strong>
+                    <p style="font-size: 0.95em;">Profitable traders sent to B-book</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">📉</div>
+                    <strong>Lost Revenue</strong>
+                    <p style="font-size: 0.95em;">Large losses per misrouted whale</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Evolution of Toxic Flow -->
+    <div class="container">
+        <div class="slide" id="slide3">
+            <h2>The Evolution of Toxic Flow</h2>
+            
+            <div style="background: #f7f8fc; padding: 25px; border-radius: 20px; margin-bottom: 25px;">
+                <p style="font-size: 1.2em; line-height: 2;">
+                    <strong>Yesterday:</strong> "Loud" latency arbitrage - easy to spot<br>
+                    <strong>Today:</strong> Context-aware behavioral patterns - invisible to humans<br>
+                    <strong>Tomorrow:</strong> AI-driven attacks that adapt faster than your policies
+                </p>
+            </div>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Challenge</th>
+                    <th>Human Dealers</th>
+                    <th>AI-Powered Decision Making</th>
+                </tr>
+                <tr>
+                    <td><strong>Pattern Detection</strong></td>
+                    <td>Individual account focus</td>
+                    <td>Multi-entity behavioral analysis</td>
+                </tr>
+                <tr>
+                    <td><strong>Adaptation Speed</strong></td>
+                    <td>Days to weeks</td>
+                    <td>Real-time continuous learning</td>
+                </tr>
+                <tr>
+                    <td><strong>Decision Consistency</strong></td>
+                    <td>Varies by dealer/shift</td>
+                    <td>100% systematic application</td>
+                </tr>
+            </table>
+            
+            <p style="margin-top: 25px; text-align: center; font-size: 1.1em; color: #f44336;">
+                <strong>Your dealers can't evolve fast enough. But AI can.</strong>
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 4: Compliance Advantage -->
+    <div class="container">
+        <div class="slide" id="slide4">
+            <h2>Turn Compliance Into Competitive Advantage</h2>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="font-size: 1.3em;">AI doesn't just make decisions faster.</p>
+                <p style="font-size: 1.5em; color: #667eea; font-weight: 700;">It makes them explainable.</p>
+            </div>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Requirement</th>
+                    <th>Human Dealers</th>
+                    <th>BABLO AI</th>
+                </tr>
+                <tr>
+                    <td><strong>Decision Audit</strong></td>
+                    <td>"Gut feeling" / Experience</td>
+                    <td>Complete decision tree with data points</td>
+                </tr>
+                <tr>
+                    <td><strong>Regulatory Queries</strong></td>
+                    <td>Days to reconstruct reasoning</td>
+                    <td>Instant audit trail generation</td>
+                </tr>
+                <tr>
+                    <td><strong>MiFID II Compliance</strong></td>
+                    <td>Manual documentation burden</td>
+                    <td>Automated reporting built-in</td>
+                </tr>
+            </table>
+            
+            <div style="background: #e8f5e9; padding: 20px; border-radius: 15px; margin-top: 25px; border-left: 5px solid #4caf50;">
+                <p style="color: #2e7d32; font-size: 1.1em;">
+                    <strong>✓ Regulatory Advantage:</strong> Every AI decision includes complete justification, turning compliance from cost center into competitive moat.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: BABLO Introduction -->
+    <div class="container">
+        <div class="slide" id="slide5">
+            <h2>BABLO: Your AI-Powered Book Optimiser That Never Sleeps</h2>
+            <p class="subtitle" style="font-size: 1.2em; color: #667eea;">Not Another Execution System - A Decision Acceleration Platform</p>
+            
+            <div class="flow-chart">
+                <div class="flow-item">
+                    <div class="icon">🔍</div>
+                    <strong>Detects</strong>
+                    <p style="font-size: 0.95em;">Behavioral patterns across entities</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">🧠</div>
+                    <strong>Decides</strong>
+                    <p style="font-size: 0.95em;">Optimal routing in milliseconds</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">📝</div>
+                    <strong>Documents</strong>
+                    <p style="font-size: 0.95em;">Every decision with full explanation</p>
+                </div>
+            </div>
+
+            <h3>The Magic: We Know Who Will Win or Lose</h3>
+            <p style="text-align: center; color: #667eea; margin-bottom: 20px;">
+                Behavioral intelligence that predicts trader profitability before it impacts your P&L
+            </p>
+
+            <div class="grid">
+                <div class="card">
+                    <strong>Multi-dimensional Analysis</strong>
+                    <p style="font-size: 0.95em;">Links related accounts and coordinated behaviors</p>
+                </div>
+                <div class="card">
+                    <strong>Temporal Pattern Recognition</strong>
+                    <p style="font-size: 0.95em;">Identifies evolving strategies across time zones</p>
+                </div>
+                <div class="card">
+                    <strong>Adaptive Risk Definitions</strong>
+                    <p style="font-size: 0.95em;">Toxicity criteria evolve as patterns mature</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: What BABLO Sees -->
+    <div class="container">
+        <div class="slide" id="slide6">
+            <h2>What BABLO Sees That Humans Miss</h2>
+            
+            <div class="grid">
+                <div class="stat-box">
+                    <span class="icon">🔗</span>
+                    <strong style="color: white;">Entity Relationships</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Coordinated attacks across multiple accounts invisible to traditional systems</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">📈</span>
+                    <strong style="color: white;">Behavioral Evolution</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Pattern changes detected before they impact your bottom line</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">⚡</span>
+                    <strong style="color: white;">Real-time Adaptation</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Policy updates without developer intervention - business users in control</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">📊</span>
+                    <strong style="color: white;">Leverage Patterns</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Gamblers go all-in, investors diversify - BABLO knows the difference</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">⏰</span>
+                    <strong style="color: white;">Time-based Behavior</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Different risk scores for Asian vs London sessions for the same trader</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">🔄</span>
+                    <strong style="color: white;">Strategy Shifts</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 0.95em;">Detects when traders change approach before losses mount</p>
+                </div>
+            </div>
+
+            <div style="background: #f7f8fc; padding: 20px; border-radius: 15px; margin-top: 20px;">
+                <p style="text-align: center; font-size: 1.1em;">
+                    <strong>Beyond Individual Accounts:</strong> BABLO sees the forest, not just the trees.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Implementation -->
+    <div class="container">
+        <div class="slide" id="slide7">
+            <h2>Implementation: Your Path to Decision Superiority</h2>
+            
+            <div style="background: linear-gradient(135deg, #f7f8fc 0%, #ffffff 100%); padding: 30px; border-radius: 20px;">
+                <h3 style="text-align: center;">Transform Your Operations in Phases</h3>
+                
+                <div class="flow-chart">
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 1.8em;">1</div>
+                        <strong>Data Integration</strong>
+                        <p style="font-size: 0.9em;">Minimum 1 year of trading history</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 1.8em;">2</div>
+                        <strong>Model Training</strong>
+                        <p style="font-size: 0.9em;">Custom behavioral intelligence</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 1.8em;">3</div>
+                        <strong>Phased Deployment</strong>
+                        <p style="font-size: 0.9em;">From insights to automation</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Implementation Options</h3>
+            <div class="grid" style="margin-top: 20px;">
+                <div class="card" style="text-align: center;">
+                    <strong style="color: #667eea;">Phase 1</strong>
+                    <p>Advisory mode with daily insights</p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <strong style="color: #667eea;">Phase 2</strong>
+                    <p>Semi-automated with override capability</p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <strong style="color: #667eea;">Phase 3</strong>
+                    <p>Full automation with continuous learning</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Confidence Assessment -->
+    <div class="container">
+        <div class="slide" id="slide8">
+            <h2>Technical Validation & Market Confidence</h2>
+            
+            <p style="font-size: 1.2em; text-align: center; margin-bottom: 30px;">
+                Our confidence in delivering value, based on extensive market research:
+            </p>
+
+            <div style="margin-bottom: 25px;">
+                <h3>Market Demand</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 95%; background: #4caf50;">
+                        >95% Confidence - Validated through multiple sources
+                    </div>
+                </div>
+                <p style="color: #666; font-size: 0.95em;">Industry consensus: Human dealing desks becoming obsolete</p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3>Technical Feasibility</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 85%; background: #2196f3;">
+                        70-95% Confidence - Based on current AI capabilities
+                    </div>
+                </div>
+                <p style="color: #666; font-size: 0.95em;">Proven architectures adapted for forex/crypto markets</p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3>Regulatory Acceptance</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 60%; background: #ff9800;">
+                        <70% Confidence - Emerging frameworks
+                    </div>
+                </div>
+                <p style="color: #666; font-size: 0.95em;">Growing acceptance of explainable AI in finance</p>
+            </div>
+
+            <div style="background: #f7f8fc; padding: 25px; border-radius: 20px; margin-top: 30px;">
+                <p style="font-size: 1.1em; text-align: center;">
+                    <strong>Bottom Line:</strong> The technology works. The market needs it.<br>
+                    The only variable is timing - and early adopters win.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Decision Speed Advantage -->
+    <div class="container">
+        <div class="slide" id="slide9">
+            <h2>Decision Speed: The New Battlefield</h2>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="font-size: 1.5em; color: #667eea; font-weight: 700;">
+                    Execution speed is a commodity.<br>
+                    Decision speed is the differentiator.
+                </p>
+            </div>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Capability</th>
+                    <th>Traditional Systems</th>
+                    <th>BABLO Advantage</th>
+                </tr>
+                <tr>
+                    <td><strong>Pattern Recognition</strong></td>
+                    <td>Individual account focus</td>
+                    <td>Multi-entity behavioral analysis</td>
+                </tr>
+                <tr>
+                    <td><strong>Policy Updates</strong></td>
+                    <td>Developer-dependent (days/weeks)</td>
+                    <td>Business user control (minutes)</td>
+                </tr>
+                <tr>
+                    <td><strong>Adaptation Speed</strong></td>
+                    <td>Monthly model retraining</td>
+                    <td>Continuous learning architecture</td>
+                </tr>
+            </table>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 20px; margin-top: 25px;">
+                <p style="font-size: 1.2em; text-align: center; color: white;">
+                    While competitors optimize microseconds of execution,<br>
+                    BABLO optimizes <strong>hours of decision-making</strong>.<br><br>
+                    That's a <span style="font-size: 1.4em; font-weight: 900;">1000x larger opportunity</span>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Next Steps -->
+    <div class="container">
+        <div class="slide" id="slide10">
+            <div style="text-align: center;">
+                <h1 style="font-size: 2.5em;">Transform Decision Latency Into<br>Competitive Advantage</h1>
+                
+                <p style="font-size: 1.3em; margin: 25px 0;">
+                    BABLO isn't about faster execution.<br>
+                    It's about <span class="highlight">smarter, faster decisions</span> with full compliance.
+                </p>
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 35px; border-radius: 20px; margin: 30px 0;">
+                    <h2 style="color: white; margin-bottom: 25px;">Ready to Lead the Revolution?</h2>
+                    
+                    <div style="background: white; color: #333; padding: 25px; border-radius: 15px;">
+                        <h3>Next Steps:</h3>
+                        <p style="font-size: 1.1em; line-height: 2;">
+                            1. <strong>Technical Discovery Session</strong> - Understand your specific challenges<br>
+                            2. <strong>Data Assessment</strong> - Evaluate behavioral patterns in your flow<br>
+                            3. <strong>Custom Proof of Concept</strong> - Demonstrate value with your data<br>
+                            4. <strong>Phased Implementation</strong> - Start with insights, scale to automation
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="button" onclick="window.location.href='mailto:nestoras.neofytou@electiconsulting.com?subject=Schedule%20Discovery%20Session'">
+                        Schedule Discovery Session
+                    </button>
+                </div>
+                
+                <p style="margin-top: 25px; color: #999; font-size: 1em;">
+                    <strong>Decision speed determines market winners.</strong><br>
+                    Make your decision before your competitors make theirs.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+        <span id="slideIndicator" style="color: white; font-weight: 600;">1 / 10</span>
+        <button class="nav-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 10;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+            
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+                // Reset scroll position for each slide
+                slide.scrollTop = 0;
+            });
+            
+            document.getElementById(`slide${currentSlide}`).classList.add('active');
+            
+            // Update progress bar
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            // Update slide indicator
+            document.getElementById('slideIndicator').textContent = `${currentSlide} / ${totalSlides}`;
+        }
+
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+
+        function previousSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') previousSlide();
+            if (e.key >= '0' && e.key <= '9') {
+                currentSlide = parseInt(e.key) || 10;
+                showSlide(currentSlide);
+            }
+        });
+
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) nextSlide();
+            if (touchEndX > touchStartX + 50) previousSlide();
+        }
+
+        // Initialize
+        showSlide(1);
+    </script>
+</body>
+</html>
