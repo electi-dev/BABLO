@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>BABLO - Behavioral Intelligence for Modern Brokers</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -17,6 +17,7 @@
             --bg-darker: #060914;
             --gold: #C9A961;
             --gold-dim: #9A7A42;
+            --gold-glow: rgba(201, 169, 97, 0.3);
             --emerald: #2D8659;
             --electric: #00D9FF;
             --text-light: #FFFFFF;
@@ -24,7 +25,6 @@
             --text-dark: #0A0E27;
             --border-subtle: #1E2340;
             --surface: #F9F9FB;
-            --surface-dark: #12172E;
         }
 
         body {
@@ -35,6 +35,72 @@
             height: 100vh;
             width: 100vw;
             position: fixed;
+        }
+
+        /* Stories-style segmented progress bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px 8px;
+            z-index: 1001;
+            background: linear-gradient(to bottom, rgba(10, 14, 39, 0.95) 0%, transparent 100%);
+        }
+
+        .progress-segment {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .progress-segment::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+
+        .progress-segment.completed::after {
+            width: 100%;
+        }
+
+        .progress-segment.active::after {
+            width: 100%;
+            box-shadow: 0 0 8px var(--gold-glow);
+        }
+
+        .progress-segment:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scaleY(1.5);
+        }
+
+        /* Floating position indicator */
+        .position-indicator {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            z-index: 1000;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .position-indicator.hidden {
+            opacity: 0;
         }
 
         .container {
@@ -58,7 +124,7 @@
             max-height: 82vh;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 60px 70px 140px 70px;
+            padding: 60px 70px 100px 70px;
             background: var(--text-light);
             border-radius: 4px;
             border: 2px solid var(--border-subtle);
@@ -74,15 +140,16 @@
         }
 
         .slide::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .slide::-webkit-scrollbar-track {
-            background: #E0E0E0;
+            background: transparent;
         }
 
         .slide::-webkit-scrollbar-thumb {
-            background: var(--bg-dark);
+            background: rgba(10, 14, 39, 0.3);
+            border-radius: 3px;
         }
 
         .slide::-webkit-scrollbar-thumb:hover {
@@ -92,15 +159,61 @@
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: scale(0.98);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: scale(1);
             }
         }
 
-        /* Typography - Serif headlines, stark hierarchy */
+        /* Invisible tap zones with edge glow feedback */
+        .tap-zone {
+            display: none;
+            position: fixed;
+            top: 50px;
+            height: calc(100vh - 100px);
+            z-index: 999;
+            cursor: pointer;
+        }
+        
+        .tap-zone-left {
+            left: 0;
+            width: 20%;
+        }
+        
+        .tap-zone-right {
+            right: 0;
+            width: 20%;
+        }
+
+        /* Edge glow effect on tap */
+        .edge-glow {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 1002;
+        }
+
+        .edge-glow-left {
+            left: 0;
+            background: linear-gradient(to right, var(--gold-glow), transparent);
+        }
+
+        .edge-glow-right {
+            right: 0;
+            background: linear-gradient(to left, var(--gold-glow), transparent);
+        }
+
+        .edge-glow.active {
+            opacity: 1;
+        }
+
+        /* Typography */
         h1 {
             font-family: 'Playfair Display', Georgia, serif;
             font-size: 3.2em;
@@ -158,7 +271,7 @@
             margin: 15px 0;
         }
 
-        /* Stat boxes - Dark with gold border */
+        /* Stat boxes */
         .stat-box {
             background: var(--bg-dark);
             color: var(--text-light);
@@ -190,7 +303,7 @@
             color: var(--text-light);
         }
 
-        /* Grid with generous spacing */
+        /* Grid */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -198,7 +311,7 @@
             margin: 40px 0;
         }
 
-        /* Cards - Minimal, bordered */
+        /* Cards */
         .card {
             background: var(--surface);
             padding: 30px;
@@ -238,7 +351,7 @@
             color: var(--gold);
         }
 
-        /* CTA Buttons - Rectangular, gold */
+        /* CTA Buttons */
         .button {
             display: inline-block;
             padding: 20px 50px;
@@ -260,10 +373,10 @@
         .button:hover {
             background: var(--text-light);
             color: var(--bg-dark);
-            border: 2px solid var(--bg-dark);
+            box-shadow: inset 0 0 0 2px var(--bg-dark);
         }
 
-        /* Navigation - Dark, rectangular */
+        /* Desktop Navigation - hidden on mobile */
         .navigation {
             position: fixed;
             bottom: 20px;
@@ -273,26 +386,21 @@
             gap: 15px;
             z-index: 1000;
             align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding: 15px 25px;
+            padding: 12px 20px;
             background: var(--bg-dark);
-            border-radius: 0;
-            border: 2px solid var(--gold);
+            border: 1px solid var(--border-subtle);
             pointer-events: auto;
         }
 
         .nav-btn {
-            padding: 12px 25px;
+            padding: 10px 20px;
             background: transparent;
-            border: 2px solid var(--gold);
+            border: 1px solid var(--gold);
             color: var(--gold);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            min-height: 48px;
-            white-space: nowrap;
-            font-size: 0.9em;
+            transition: all 0.2s ease;
+            font-size: 0.85em;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -301,29 +409,21 @@
             background: var(--gold);
             color: var(--bg-dark);
         }
-
-        #slideIndicator {
-            color: var(--text-light);
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            padding: 8px 20px;
-            font-size: 1em;
-        }
-
-        /* Progress bar - Solid gold */
-        .progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 4px;
-            background: var(--gold);
-            width: 0%;
-            transition: width 0.3s ease;
-            z-index: 1001;
+        
+        .nav-btn.disabled {
+            opacity: 0.3;
             pointer-events: none;
         }
 
-        /* Flow chart - Clean, minimal */
+        #slideIndicator {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            padding: 0 15px;
+            font-size: 0.9em;
+        }
+
+        /* Flow chart */
         .flow-chart {
             display: flex;
             align-items: center;
@@ -366,7 +466,7 @@
             font-weight: 400;
         }
 
-        /* Tables - Dark headers, clean lines */
+        /* Tables */
         .comparison-table {
             width: 100%;
             margin: 30px 0;
@@ -421,19 +521,7 @@
             background: var(--surface);
         }
 
-        .check {
-            color: var(--emerald);
-            font-size: 1.5em;
-            font-weight: 700;
-        }
-
-        .cross {
-            color: #B84C4C;
-            font-size: 1.5em;
-            font-weight: 700;
-        }
-
-        /* Confidence bars - Solid colors */
+        /* Confidence bars */
         .confidence-bar {
             height: 40px;
             overflow: hidden;
@@ -489,7 +577,7 @@
             margin: 0;
         }
 
-        /* Alert/Callout boxes */
+        /* Callout boxes */
         .callout {
             background: var(--surface);
             padding: 30px;
@@ -509,15 +597,38 @@
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
+            .tap-zone {
+                display: block;
+            }
+            
+            .navigation {
+                display: none;
+            }
+
+            .position-indicator {
+                bottom: 20px;
+                font-size: 0.75em;
+            }
+
+            .progress-container {
+                padding: 10px 12px 6px;
+                gap: 3px;
+            }
+
+            .progress-segment {
+                height: 2px;
+            }
+            
             .container {
                 padding: 0 5px;
             }
 
             .slide {
-                padding: 30px 20px 150px 20px;
+                padding: 30px 20px 80px 20px;
                 height: 88vh;
                 max-height: 88vh;
                 width: 96%;
+                margin-top: 20px;
             }
 
             h1 {
@@ -568,17 +679,6 @@
                 font-size: 1em;
             }
 
-            .navigation {
-                bottom: 12px;
-                gap: 10px;
-                padding: 12px 15px;
-            }
-
-            .nav-btn {
-                padding: 10px 18px;
-                font-size: 0.85em;
-            }
-
             .flow-chart {
                 padding: 25px;
                 flex-direction: column;
@@ -598,12 +698,25 @@
             .logo {
                 font-size: 2em;
             }
+
+            .edge-glow {
+                width: 50px;
+            }
         }
 
         @media (max-width: 480px) {
+            .tap-zone-left {
+                width: 25%;
+            }
+            
+            .tap-zone-right {
+                width: 25%;
+            }
+            
             .slide {
-                padding: 25px 15px 160px 15px;
+                padding: 25px 15px 70px 15px;
                 height: 90vh;
+                margin-top: 15px;
             }
 
             h1 {
@@ -618,21 +731,21 @@
                 font-size: 2em;
             }
 
-            .nav-btn {
-                padding: 10px 15px;
-                font-size: 0.8em;
+            .progress-container {
+                padding: 8px 10px 5px;
+                gap: 2px;
             }
         }
 
         @media (max-height: 500px) and (orientation: landscape) {
             .slide {
-                height: 95vh;
-                padding: 20px 25px 120px 25px;
+                height: 92vh;
+                padding: 20px 25px 60px 25px;
+                margin-top: 25px;
             }
 
-            .navigation {
-                bottom: 8px;
-                padding: 10px 15px;
+            .progress-container {
+                padding: 8px 12px 5px;
             }
 
             h1 { font-size: 1.7em; margin-bottom: 15px; }
@@ -647,22 +760,85 @@
             .flow-arrow {
                 transform: none;
             }
+
+            .position-indicator {
+                bottom: 12px;
+            }
         }
 
         @media (min-width: 769px) and (max-width: 1024px) {
             .slide {
-                padding: 50px 50px 140px 50px;
+                padding: 50px 50px 100px 50px;
             }
 
             h1 { font-size: 2.8em; }
             h2 { font-size: 2.1em; }
         }
+
+        /* Desktop: show nav, hide mobile indicators */
+        @media (min-width: 769px) {
+            .position-indicator {
+                display: none;
+            }
+
+            .progress-container {
+                display: none;
+            }
+
+            .navigation {
+                display: flex;
+            }
+
+            /* Simple progress bar for desktop */
+            .desktop-progress {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 3px;
+                background: var(--gold);
+                width: 0%;
+                transition: width 0.3s ease;
+                z-index: 1001;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .desktop-progress {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="progress-bar" id="progressBar"></div>
+    <!-- Desktop progress bar -->
+    <div class="desktop-progress" id="desktopProgress"></div>
+
+    <!-- Mobile: Stories-style segmented progress -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-segment completed active" data-slide="1"></div>
+        <div class="progress-segment" data-slide="2"></div>
+        <div class="progress-segment" data-slide="3"></div>
+        <div class="progress-segment" data-slide="4"></div>
+        <div class="progress-segment" data-slide="5"></div>
+        <div class="progress-segment" data-slide="6"></div>
+        <div class="progress-segment" data-slide="7"></div>
+        <div class="progress-segment" data-slide="8"></div>
+        <div class="progress-segment" data-slide="9"></div>
+        <div class="progress-segment" data-slide="10"></div>
+    </div>
+
+    <!-- Edge glow effects -->
+    <div class="edge-glow edge-glow-left" id="glowLeft"></div>
+    <div class="edge-glow edge-glow-right" id="glowRight"></div>
     
-    <!-- Slide 1: Title - Enhanced Hook -->
+    <!-- Invisible tap zones -->
+    <div class="tap-zone tap-zone-left" id="tapLeft"></div>
+    <div class="tap-zone tap-zone-right" id="tapRight"></div>
+
+    <!-- Floating position indicator (mobile) -->
+    <div class="position-indicator" id="positionIndicator">01 / 10</div>
+    
+    <!-- Slide 1: Title -->
     <div class="container">
         <div class="slide active" id="slide1">
             <div style="text-align: center;">
@@ -983,7 +1159,7 @@
                 <h3 style="margin-top: 0;">Regulatory Acceptance</h3>
                 <div class="confidence-bar">
                     <div class="confidence-fill" style="width: 60%; background: var(--gold);">
-                        <70% Confidence — Emerging frameworks
+                        &lt;70% Confidence — Emerging frameworks
                     </div>
                 </div>
                 <p style="color: #555; font-size: 0.95em;">Growing acceptance of explainable AI in finance</p>
@@ -1079,87 +1255,197 @@
         </div>
     </div>
 
+    <!-- Desktop Navigation -->
     <div class="navigation">
-        <button class="nav-btn" onclick="previousSlide()">← PREV</button>
+        <button class="nav-btn" id="prevBtn" onclick="previousSlide()">← PREV</button>
         <span id="slideIndicator">01 / 10</span>
-        <button class="nav-btn" onclick="nextSlide()">NEXT →</button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">NEXT →</button>
     </div>
 
     <script>
-        let currentSlide = 1;
-        const totalSlides = 10;
+        var currentSlide = 1;
+        var totalSlides = 10;
+        var glowTimeout;
+
+        function updateProgressSegments() {
+            var segments = document.querySelectorAll('.progress-segment');
+            segments.forEach(function(seg, index) {
+                var slideNum = index + 1;
+                seg.classList.remove('completed', 'active');
+                
+                if (slideNum < currentSlide) {
+                    seg.classList.add('completed');
+                } else if (slideNum === currentSlide) {
+                    seg.classList.add('completed', 'active');
+                }
+            });
+        }
 
         function showSlide(n) {
-            const slides = document.querySelectorAll('.slide');
-            if (n > totalSlides) currentSlide = 1;
-            if (n < 1) currentSlide = totalSlides;
+            var slides = document.querySelectorAll('.slide');
             
-            slides.forEach(slide => {
+            if (n > totalSlides) currentSlide = totalSlides;
+            if (n < 1) currentSlide = 1;
+            
+            slides.forEach(function(slide) {
                 slide.classList.remove('active');
                 slide.scrollTop = 0;
             });
             
-            document.getElementById(`slide${currentSlide}`).classList.add('active');
+            document.getElementById('slide' + currentSlide).classList.add('active');
             
-            const progress = (currentSlide / totalSlides) * 100;
-            document.getElementById('progressBar').style.width = progress + '%';
+            // Desktop progress
+            var progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('desktopProgress').style.width = progress + '%';
             
-            const slideNum = currentSlide.toString().padStart(2, '0');
-            document.getElementById('slideIndicator').textContent = `${slideNum} / ${totalSlides}`;
+            // Desktop indicator
+            var slideNum = currentSlide.toString().padStart(2, '0');
+            document.getElementById('slideIndicator').textContent = slideNum + ' / ' + totalSlides;
+            
+            // Mobile position indicator
+            document.getElementById('positionIndicator').textContent = slideNum + ' / ' + totalSlides;
+            
+            // Update segmented progress
+            updateProgressSegments();
+            
+            // Update nav buttons
+            updateNavButtons();
+        }
+
+        function triggerEdgeGlow(direction) {
+            var glow = document.getElementById(direction === 'left' ? 'glowLeft' : 'glowRight');
+            glow.classList.add('active');
+            
+            clearTimeout(glowTimeout);
+            glowTimeout = setTimeout(function() {
+                glow.classList.remove('active');
+            }, 150);
         }
 
         function nextSlide() {
-            currentSlide++;
-            showSlide(currentSlide);
+            if (currentSlide < totalSlides) {
+                triggerEdgeGlow('right');
+                currentSlide++;
+                showSlide(currentSlide);
+            }
         }
 
         function previousSlide() {
-            currentSlide--;
-            showSlide(currentSlide);
+            if (currentSlide > 1) {
+                triggerEdgeGlow('left');
+                currentSlide--;
+                showSlide(currentSlide);
+            }
         }
+
+        function goToSlide(n) {
+            if (n >= 1 && n <= totalSlides) {
+                currentSlide = n;
+                showSlide(currentSlide);
+            }
+        }
+        
+        function updateNavButtons() {
+            var prevBtn = document.getElementById('prevBtn');
+            var nextBtn = document.getElementById('nextBtn');
+            
+            if (currentSlide === 1) {
+                prevBtn.classList.add('disabled');
+            } else {
+                prevBtn.classList.remove('disabled');
+            }
+            
+            if (currentSlide === totalSlides) {
+                nextBtn.classList.add('disabled');
+            } else {
+                nextBtn.classList.remove('disabled');
+            }
+        }
+
+        // Tap zones
+        document.getElementById('tapLeft').addEventListener('click', function(e) {
+            e.stopPropagation();
+            previousSlide();
+        });
+        
+        document.getElementById('tapRight').addEventListener('click', function(e) {
+            e.stopPropagation();
+            nextSlide();
+        });
+
+        // Progress segment clicks (direct navigation)
+        document.querySelectorAll('.progress-segment').forEach(function(seg) {
+            seg.addEventListener('click', function() {
+                var targetSlide = parseInt(this.getAttribute('data-slide'));
+                goToSlide(targetSlide);
+            });
+        });
 
         // Keyboard navigation
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
-            if (e.key === 'ArrowLeft') previousSlide();
-            if (e.key >= '0' && e.key <= '9') {
-                currentSlide = parseInt(e.key) || 10;
-                showSlide(currentSlide);
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            }
+            if (e.key >= '1' && e.key <= '9') {
+                goToSlide(parseInt(e.key));
+            }
+            if (e.key === '0') {
+                goToSlide(10);
             }
         });
 
         // Touch/swipe support
-        let touchStartX = 0;
-        let touchEndX = 0;
-        let touchStartY = 0;
-        let touchEndY = 0;
+        var touchStartX = 0;
+        var touchEndX = 0;
+        var touchStartY = 0;
+        var touchEndY = 0;
+        var touchStartTime = 0;
 
         document.addEventListener('touchstart', function(e) {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
+            touchStartTime = Date.now();
         }, { passive: true });
 
         document.addEventListener('touchend', function(e) {
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
-            handleSwipe();
-        }, { passive: true });
-
-        function handleSwipe() {
-            const xDiff = touchStartX - touchEndX;
-            const yDiff = touchStartY - touchEndY;
+            var touchDuration = Date.now() - touchStartTime;
             
-            if (Math.abs(xDiff) > 75 && Math.abs(xDiff) > Math.abs(yDiff) * 2) {
+            var xDiff = touchStartX - touchEndX;
+            var yDiff = touchStartY - touchEndY;
+            
+            if (Math.abs(xDiff) > 75 && Math.abs(xDiff) > Math.abs(yDiff) * 2 && touchDuration > 100) {
                 if (xDiff > 0) {
                     nextSlide();
                 } else {
                     previousSlide();
                 }
             }
+        }, { passive: true });
+
+        // Hide position indicator after inactivity
+        var indicatorTimeout;
+        function resetIndicatorTimeout() {
+            var indicator = document.getElementById('positionIndicator');
+            indicator.classList.remove('hidden');
+            clearTimeout(indicatorTimeout);
+            indicatorTimeout = setTimeout(function() {
+                indicator.classList.add('hidden');
+            }, 3000);
         }
+
+        document.addEventListener('touchstart', resetIndicatorTimeout, { passive: true });
+        document.addEventListener('click', resetIndicatorTimeout);
 
         // Initialize
         showSlide(1);
+        resetIndicatorTimeout();
     </script>
 </body>
 </html>
