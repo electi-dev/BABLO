@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>BABLO - Behavioral Intelligence for Modern Brokers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0A0E27;
+            --bg-darker: #060914;
+            --gold: #C9A961;
+            --gold-dim: #9A7A42;
+            --gold-glow: rgba(201, 169, 97, 0.3);
+            --emerald: #2D8659;
+            --electric: #00D9FF;
+            --text-light: #FFFFFF;
+            --text-muted: #8A8FA3;
+            --text-dark: #0A0E27;
+            --border-subtle: #1E2340;
+            --surface: #F9F9FB;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+        }
+
+        /* Stories-style segmented progress bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px 8px;
+            z-index: 1001;
+            background: linear-gradient(to bottom, rgba(10, 14, 39, 0.95) 0%, transparent 100%);
+        }
+
+        .progress-segment {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .progress-segment::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+
+        .progress-segment.completed::after {
+            width: 100%;
+        }
+
+        .progress-segment.active::after {
+            width: 100%;
+            box-shadow: 0 0 8px var(--gold-glow);
+        }
+
+        .progress-segment:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scaleY(1.5);
+        }
+
+        /* Floating position indicator */
+        .position-indicator {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            z-index: 1000;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .position-indicator.hidden {
+            opacity: 0;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 0 10px;
+            pointer-events: none;
+        }
+
+        .slide {
+            display: none;
+            width: 92%;
+            max-width: 1100px;
+            height: 82vh;
+            max-height: 82vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 60px 70px 100px 70px;
+            background: var(--text-light);
+            border-radius: 4px;
+            border: 2px solid var(--border-subtle);
+            animation: slideIn 0.4s ease-out;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            pointer-events: auto;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: rgba(10, 14, 39, 0.3);
+            border-radius: 3px;
+        }
+
+        .slide::-webkit-scrollbar-thumb:hover {
+            background: var(--gold);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Invisible tap zones with edge glow feedback */
+        .tap-zone {
+            display: none;
+            position: fixed;
+            top: 50px;
+            height: calc(100vh - 100px);
+            z-index: 999;
+            cursor: pointer;
+        }
+        
+        .tap-zone-left {
+            left: 0;
+            width: 20%;
+        }
+        
+        .tap-zone-right {
+            right: 0;
+            width: 20%;
+        }
+
+        /* Edge glow effect on tap */
+        .edge-glow {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 1002;
+        }
+
+        .edge-glow-left {
+            left: 0;
+            background: linear-gradient(to right, var(--gold-glow), transparent);
+        }
+
+        .edge-glow-right {
+            right: 0;
+            background: linear-gradient(to left, var(--gold-glow), transparent);
+        }
+
+        .edge-glow.active {
+            opacity: 1;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 3.2em;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 40px;
+            line-height: 1.15;
+            letter-spacing: -2px;
+        }
+
+        h2 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.4em;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 40px;
+            line-height: 1.2;
+            letter-spacing: -1px;
+        }
+
+        h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 45px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        p {
+            font-size: 1.15em;
+            line-height: 1.9;
+            color: #444;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .highlight {
+            color: var(--gold-dim);
+            font-weight: 700;
+        }
+
+        strong {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .big-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 4em;
+            font-weight: 700;
+            color: var(--gold);
+            display: inline-block;
+            margin: 15px 0;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            background: var(--bg-dark);
+            color: var(--text-light);
+            padding: 35px;
+            border-radius: 0;
+            border: 3px solid var(--gold);
+            margin: 20px 0;
+            transition: border-color 0.3s ease;
+        }
+
+        .stat-box:hover {
+            border-color: var(--text-light);
+        }
+
+        .stat-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3em;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 15px;
+            color: var(--gold);
+            letter-spacing: -2px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.7;
+            color: var(--text-light);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 0;
+            border-left: 4px solid var(--gold);
+            border-top: 1px solid #E0E0E0;
+            border-right: 1px solid #E0E0E0;
+            border-bottom: 1px solid #E0E0E0;
+            transition: border-left-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-left-color: var(--emerald);
+        }
+
+        .card strong {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card p {
+            font-size: 1em;
+            line-height: 1.7;
+            color: #666;
+            margin-bottom: 0;
+        }
+
+        .icon {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--gold);
+        }
+
+        /* CTA Buttons */
+        .button {
+            display: inline-block;
+            padding: 20px 50px;
+            background: var(--gold);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 0;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 15px 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            min-height: 48px;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: var(--text-light);
+            color: var(--bg-dark);
+            box-shadow: inset 0 0 0 2px var(--bg-dark);
+        }
+
+        /* Desktop Navigation - hidden on mobile */
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-subtle);
+            pointer-events: auto;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-btn:hover {
+            background: var(--gold);
+            color: var(--bg-dark);
+        }
+        
+        .nav-btn.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        #slideIndicator {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            padding: 0 15px;
+            font-size: 0.9em;
+        }
+
+        /* Flow chart */
+        .flow-chart {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin: 45px 0;
+            padding: 40px;
+            background: var(--surface);
+            border: 1px solid #E0E0E0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .flow-item {
+            text-align: center;
+            flex: 1;
+            padding: 20px;
+            min-width: 180px;
+        }
+
+        .flow-item strong {
+            display: block;
+            margin: 15px 0 10px;
+            font-size: 1.1em;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .flow-item p {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #666;
+            margin: 0;
+        }
+
+        .flow-arrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2em;
+            color: var(--gold);
+            font-weight: 400;
+        }
+
+        /* Tables */
+        .comparison-table {
+            width: 100%;
+            margin: 30px 0;
+            border-collapse: collapse;
+            display: block;
+            overflow-x: auto;
+            border: 1px solid var(--bg-dark);
+        }
+
+        .comparison-table thead,
+        .comparison-table tbody,
+        .comparison-table tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .comparison-table thead {
+            width: calc(100% - 8px);
+        }
+
+        .comparison-table th {
+            background: var(--bg-dark);
+            color: var(--text-light);
+            padding: 20px;
+            text-align: left;
+            font-size: 1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-right: 1px solid var(--border-subtle);
+        }
+
+        .comparison-table th:last-child {
+            border-right: none;
+        }
+
+        .comparison-table td {
+            padding: 20px;
+            border-bottom: 1px solid #E0E0E0;
+            font-size: 1em;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .comparison-table td strong {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: var(--surface);
+        }
+
+        /* Confidence bars */
+        .confidence-bar {
+            height: 40px;
+            overflow: hidden;
+            margin: 12px 0;
+            background: #E0E0E0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .logo-accent {
+            color: var(--gold);
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1em;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Terminal-style accent box */
+        .terminal-box {
+            background: var(--bg-dark);
+            border: 2px solid var(--gold);
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .terminal-box p {
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1em;
+            margin: 0;
+        }
+
+        /* Callout boxes */
+        .callout {
+            background: var(--surface);
+            padding: 30px;
+            border-left: 4px solid var(--emerald);
+            margin: 30px 0;
+        }
+
+        .callout p {
+            color: #333;
+            font-size: 1.1em;
+            margin: 0;
+        }
+
+        .callout.warning {
+            border-left-color: #B84C4C;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .tap-zone {
+                display: block;
+            }
+            
+            .navigation {
+                display: none;
+            }
+
+            .position-indicator {
+                bottom: 20px;
+                font-size: 0.75em;
+            }
+
+            .progress-container {
+                padding: 10px 12px 6px;
+                gap: 3px;
+            }
+
+            .progress-segment {
+                height: 2px;
+            }
+            
+            .container {
+                padding: 0 5px;
+            }
+
+            .slide {
+                padding: 30px 20px 80px 20px;
+                height: 88vh;
+                max-height: 88vh;
+                width: 96%;
+                margin-top: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+                margin-bottom: 25px;
+                letter-spacing: -1px;
+            }
+
+            h2 {
+                font-size: 1.7em;
+                margin-bottom: 25px;
+            }
+
+            h3 {
+                font-size: 1.2em;
+                margin: 30px 0 15px;
+            }
+
+            p {
+                font-size: 1em;
+                line-height: 1.7;
+            }
+
+            .big-number {
+                font-size: 2.8em;
+            }
+
+            .stat-box {
+                padding: 25px;
+                margin: 16px 0;
+            }
+
+            .stat-number {
+                font-size: 2.4em;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card {
+                padding: 22px;
+            }
+
+            .button {
+                padding: 16px 30px;
+                font-size: 1em;
+            }
+
+            .flow-chart {
+                padding: 25px;
+                flex-direction: column;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 14px;
+                font-size: 0.9em;
+            }
+
+            .logo {
+                font-size: 2em;
+            }
+
+            .edge-glow {
+                width: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tap-zone-left {
+                width: 25%;
+            }
+            
+            .tap-zone-right {
+                width: 25%;
+            }
+            
+            .slide {
+                padding: 25px 15px 70px 15px;
+                height: 90vh;
+                margin-top: 15px;
+            }
+
+            h1 {
+                font-size: 1.7em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .stat-number {
+                font-size: 2em;
+            }
+
+            .progress-container {
+                padding: 8px 10px 5px;
+                gap: 2px;
+            }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            .slide {
+                height: 92vh;
+                padding: 20px 25px 60px 25px;
+                margin-top: 25px;
+            }
+
+            .progress-container {
+                padding: 8px 12px 5px;
+            }
+
+            h1 { font-size: 1.7em; margin-bottom: 15px; }
+            h2 { font-size: 1.5em; margin-bottom: 15px; }
+            p { font-size: 0.95em; margin-bottom: 10px; }
+
+            .flow-chart {
+                flex-direction: row;
+                padding: 20px;
+            }
+
+            .flow-arrow {
+                transform: none;
+            }
+
+            .position-indicator {
+                bottom: 12px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .slide {
+                padding: 50px 50px 100px 50px;
+            }
+
+            h1 { font-size: 2.8em; }
+            h2 { font-size: 2.1em; }
+        }
+
+        /* Desktop: show nav, hide mobile indicators */
+        @media (min-width: 769px) {
+            .position-indicator {
+                display: none;
+            }
+
+            .progress-container {
+                display: none;
+            }
+
+            .navigation {
+                display: flex;
+            }
+
+            /* Simple progress bar for desktop */
+            .desktop-progress {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 3px;
+                background: var(--gold);
+                width: 0%;
+                transition: width 0.3s ease;
+                z-index: 1001;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .desktop-progress {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Desktop progress bar -->
+    <div class="desktop-progress" id="desktopProgress"></div>
+
+    <!-- Mobile: Stories-style segmented progress -->
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-segment completed active" data-slide="1"></div>
+        <div class="progress-segment" data-slide="2"></div>
+        <div class="progress-segment" data-slide="3"></div>
+        <div class="progress-segment" data-slide="4"></div>
+        <div class="progress-segment" data-slide="5"></div>
+        <div class="progress-segment" data-slide="6"></div>
+        <div class="progress-segment" data-slide="7"></div>
+        <div class="progress-segment" data-slide="8"></div>
+        <div class="progress-segment" data-slide="9"></div>
+        <div class="progress-segment" data-slide="10"></div>
+    </div>
+
+    <!-- Edge glow effects -->
+    <div class="edge-glow edge-glow-left" id="glowLeft"></div>
+    <div class="edge-glow edge-glow-right" id="glowRight"></div>
+    
+    <!-- Invisible tap zones -->
+    <div class="tap-zone tap-zone-left" id="tapLeft"></div>
+    <div class="tap-zone tap-zone-right" id="tapRight"></div>
+
+    <!-- Floating position indicator (mobile) -->
+    <div class="position-indicator" id="positionIndicator">01 / 10</div>
+    
+    <!-- Slide 1: Title -->
+    <div class="container">
+        <div class="slide active" id="slide1">
+            <div style="text-align: center;">
+                <div class="logo">B<span class="logo-accent">_</span>ABLO</div>
+                <p class="subtitle">Behavioral Intelligence Operating System</p>
+                
+                <h1 style="margin-top: 50px; font-size: 2.8em;">While Your Dealers Deliberate,<br>Markets Move</h1>
+                
+                <p style="font-size: 1.4em; color: #555; margin: 40px 0; line-height: 1.7;">
+                    Every minute of human decision-making<br>is a minute your competitors don't waste.
+                </p>
+                
+                <div class="stat-box" style="max-width: 600px; margin: 50px auto;">
+                    <span class="stat-number">1000×</span>
+                    <span class="stat-label">Faster routing decisions. Full audit trail. Zero excuses.</span>
+                </div>
+                
+                <div class="terminal-box" style="max-width: 700px; margin: 40px auto; text-align: left;">
+                    <p style="color: var(--gold);">> The question isn't whether to automate.</p>
+                    <p style="color: #888; margin-top: 10px;">> It's whether you automate before your competitors do.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: The Problem -->
+    <div class="container">
+        <div class="slide" id="slide2">
+            <h2>The Decision Bottleneck</h2>
+            <p style="font-size: 1.25em; color: var(--gold-dim); margin-bottom: 35px; font-weight: 600;">
+                Execution is commoditized. Decisions are the bottleneck.
+            </p>
+            
+            <div class="grid">
+                <div class="stat-box">
+                    <span class="icon">[T]</span>
+                    <span class="stat-label">Hours to change routing policies</span>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[X]</span>
+                    <span class="stat-label">Dealer A ≠ Dealer B — inconsistent decisions</span>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[?]</span>
+                    <span class="stat-label">Manual analysis misses coordinated patterns</span>
+                </div>
+            </div>
+            
+            <h3>Hidden Costs</h3>
+            <div class="flow-chart">
+                <div class="flow-item">
+                    <div class="icon">[1]</div>
+                    <strong>Night Shift Drift</strong>
+                    <p>Cognitive performance degrades after 6 hours</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">[2]</div>
+                    <strong>Misrouted Flow</strong>
+                    <p>Profitable traders sent to B-book</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">[3]</div>
+                    <strong>P&L Destruction</strong>
+                    <p>Every whale misrouted costs six figures</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Evolution of Threat -->
+    <div class="container">
+        <div class="slide" id="slide3">
+            <h2>Toxic Flow Evolves.<br>Your Dealers Can't Keep Up.</h2>
+            <p style="font-size: 1.15em; margin-bottom: 35px;">
+                Coordinated strategies. Distributed accounts. Adaptive tactics.<br>
+                The adversaries study your patterns. Do you study theirs?
+            </p>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Challenge</th>
+                    <th>Human Dealers</th>
+                    <th>AI Decision Engine</th>
+                </tr>
+                <tr>
+                    <td><strong>Pattern Detection</strong></td>
+                    <td>Individual account focus</td>
+                    <td>Multi-entity behavioral analysis</td>
+                </tr>
+                <tr>
+                    <td><strong>Adaptation Speed</strong></td>
+                    <td>Days to weeks</td>
+                    <td>Real-time continuous learning</td>
+                </tr>
+                <tr>
+                    <td><strong>Decision Consistency</strong></td>
+                    <td>Varies by dealer/shift</td>
+                    <td>100% systematic application</td>
+                </tr>
+            </table>
+            
+            <div class="callout warning" style="margin-top: 40px;">
+                <p><strong>Reality check:</strong> Your dealers evolve in months. Sophisticated flow evolves in days.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Compliance Advantage -->
+    <div class="container">
+        <div class="slide" id="slide4">
+            <h2>Compliance as Competitive Moat</h2>
+            
+            <div style="text-align: center; margin: 45px 0;">
+                <p style="font-size: 1.3em; line-height: 1.8;">AI doesn't just decide faster.</p>
+                <p style="font-size: 1.6em; color: var(--gold-dim); font-weight: 700; margin-top: 10px;">It documents every decision.</p>
+            </div>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Requirement</th>
+                    <th>Human Dealers</th>
+                    <th>BABLO</th>
+                </tr>
+                <tr>
+                    <td><strong>Decision Audit</strong></td>
+                    <td>"Gut feeling" / Experience</td>
+                    <td>Complete decision tree + data points</td>
+                </tr>
+                <tr>
+                    <td><strong>Regulatory Queries</strong></td>
+                    <td>Days to reconstruct reasoning</td>
+                    <td>Instant audit trail generation</td>
+                </tr>
+                <tr>
+                    <td><strong>MiFID II / FCA</strong></td>
+                    <td>Manual documentation burden</td>
+                    <td>Automated reporting built-in</td>
+                </tr>
+            </table>
+            
+            <div class="callout" style="margin-top: 40px;">
+                <p><strong>Strategic advantage:</strong> Every AI decision includes complete justification. Compliance becomes a selling point, not a cost center.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: BABLO Introduction -->
+    <div class="container">
+        <div class="slide" id="slide5">
+            <h2>BABLO: Decision Acceleration Platform</h2>
+            <p class="subtitle" style="font-size: 1.1em; color: var(--gold-dim); margin-bottom: 30px; text-transform: none; letter-spacing: 0;">Not another execution system. A decision engine that never sleeps.</p>
+            
+            <div class="flow-chart">
+                <div class="flow-item">
+                    <div class="icon">[D]</div>
+                    <strong>Detect</strong>
+                    <p>Behavioral patterns across entities</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">[R]</div>
+                    <strong>Route</strong>
+                    <p>Optimal allocation in milliseconds</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">[A]</div>
+                    <strong>Audit</strong>
+                    <p>Every decision fully documented</p>
+                </div>
+            </div>
+
+            <h3>Core Capability</h3>
+            <p style="text-align: center; color: var(--gold-dim); margin-bottom: 30px; font-size: 1.15em; font-weight: 600;">
+                Behavioral intelligence that predicts trader profitability before it impacts your P&L
+            </p>
+
+            <div class="grid">
+                <div class="card">
+                    <strong>Multi-dimensional Analysis</strong>
+                    <p>Links related accounts and coordinated behaviors</p>
+                </div>
+                <div class="card">
+                    <strong>Temporal Pattern Recognition</strong>
+                    <p>Identifies evolving strategies across sessions</p>
+                </div>
+                <div class="card">
+                    <strong>Adaptive Risk Definitions</strong>
+                    <p>Toxicity criteria evolve as patterns mature</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: What BABLO Sees -->
+    <div class="container">
+        <div class="slide" id="slide6">
+            <h2>What BABLO Sees.<br>What Humans Miss.</h2>
+            
+            <div class="grid">
+                <div class="stat-box">
+                    <span class="icon">[N]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Entity Networks</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Coordinated attacks across accounts invisible to traditional systems</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[E]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Behavioral Evolution</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Pattern changes detected before they impact P&L</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[R]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Real-time Adaptation</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Policy updates without dev intervention</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[L]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Leverage Signatures</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Gamblers go all-in. Investors diversify. We know.</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[T]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Session-Based Risk</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Different scores for Asian vs London sessions</p>
+                </div>
+                <div class="stat-box">
+                    <span class="icon">[S]</span>
+                    <strong style="color: white; display: block; margin-bottom: 10px;">Strategy Shifts</strong>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 1em; margin: 0;">Detects approach changes before losses mount</p>
+                </div>
+            </div>
+
+            <div class="terminal-box" style="margin-top: 30px;">
+                <p style="color: var(--gold);">> Beyond individual accounts. BABLO sees the forest.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Implementation -->
+    <div class="container">
+        <div class="slide" id="slide7">
+            <h2>Implementation Path</h2>
+            
+            <div style="background: var(--surface); padding: 40px; border: 1px solid #E0E0E0;">
+                <h3 style="text-align: center; margin-top: 0;">Phased Deployment</h3>
+                
+                <div class="flow-chart" style="background: transparent; border: none; padding: 20px 0;">
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 2.5em;">1</div>
+                        <strong>Data Integration</strong>
+                        <p>1+ year trading history</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 2.5em;">2</div>
+                        <strong>Model Training</strong>
+                        <p>Custom behavioral intelligence</p>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="big-number" style="font-size: 2.5em;">3</div>
+                        <strong>Deployment</strong>
+                        <p>Insights → Automation</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Deployment Options</h3>
+            <div class="grid" style="margin-top: 25px;">
+                <div class="card" style="text-align: center;">
+                    <strong style="color: var(--gold-dim);">Phase 1</strong>
+                    <p>Advisory mode — daily insights</p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <strong style="color: var(--gold-dim);">Phase 2</strong>
+                    <p>Semi-automated — override capability</p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <strong style="color: var(--gold-dim);">Phase 3</strong>
+                    <p>Full automation — continuous learning</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Confidence Assessment -->
+    <div class="container">
+        <div class="slide" id="slide8">
+            <h2>Technical Validation</h2>
+            
+            <p style="font-size: 1.15em; text-align: center; margin-bottom: 40px; font-weight: 600;">
+                Confidence levels based on market research and technical validation:
+            </p>
+
+            <div style="margin-bottom: 35px;">
+                <h3 style="margin-top: 0;">Market Demand</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 95%; background: var(--emerald);">
+                        >95% Confidence — Validated across multiple sources
+                    </div>
+                </div>
+                <p style="color: #555; font-size: 0.95em;">Industry consensus: Human dealing desks becoming obsolete</p>
+            </div>
+
+            <div style="margin-bottom: 35px;">
+                <h3 style="margin-top: 0;">Technical Feasibility</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 85%; background: var(--electric);">
+                        70-95% Confidence — Proven AI architectures
+                    </div>
+                </div>
+                <p style="color: #555; font-size: 0.95em;">Established models adapted for forex/crypto markets</p>
+            </div>
+
+            <div style="margin-bottom: 35px;">
+                <h3 style="margin-top: 0;">Regulatory Acceptance</h3>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 60%; background: var(--gold);">
+                        &lt;70% Confidence — Emerging frameworks
+                    </div>
+                </div>
+                <p style="color: #555; font-size: 0.95em;">Growing acceptance of explainable AI in finance</p>
+            </div>
+
+            <div class="terminal-box" style="margin-top: 40px;">
+                <p style="color: var(--gold);">> The technology works. The market needs it.</p>
+                <p style="color: #888; margin-top: 10px;">> The only variable is timing. Early adopters win.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Decision Speed Advantage -->
+    <div class="container">
+        <div class="slide" id="slide9">
+            <h2>Decision Speed:<br>The Actual Battleground</h2>
+            
+            <div style="text-align: center; margin: 45px 0;">
+                <p style="font-size: 1.5em; color: var(--gold-dim); font-weight: 700; line-height: 1.6;">
+                    Execution speed is commoditized.<br>
+                    Decision speed is the differentiator.
+                </p>
+            </div>
+
+            <table class="comparison-table">
+                <tr>
+                    <th>Capability</th>
+                    <th>Traditional</th>
+                    <th>BABLO</th>
+                </tr>
+                <tr>
+                    <td><strong>Pattern Recognition</strong></td>
+                    <td>Individual account focus</td>
+                    <td>Multi-entity behavioral analysis</td>
+                </tr>
+                <tr>
+                    <td><strong>Policy Updates</strong></td>
+                    <td>Developer-dependent (days/weeks)</td>
+                    <td>Business user control (minutes)</td>
+                </tr>
+                <tr>
+                    <td><strong>Adaptation</strong></td>
+                    <td>Monthly model retraining</td>
+                    <td>Continuous learning architecture</td>
+                </tr>
+            </table>
+
+            <div class="stat-box" style="margin-top: 40px; text-align: center;">
+                <p style="font-size: 1.2em; color: white; margin: 0; line-height: 1.8;">
+                    While competitors optimize microseconds of execution,<br>
+                    BABLO optimizes <strong style="color: var(--gold);">hours of decision-making</strong>.
+                </p>
+                <span class="stat-number" style="margin-top: 20px; margin-bottom: 0;">1000× larger opportunity</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: Next Steps -->
+    <div class="container">
+        <div class="slide" id="slide10">
+            <div style="text-align: center;">
+                <h1 style="font-size: 2.6em;">Transform Decision Latency<br>Into Competitive Advantage</h1>
+                
+                <p style="font-size: 1.3em; margin: 35px 0; line-height: 1.8;">
+                    BABLO isn't about faster execution.<br>
+                    It's about <span class="highlight">smarter, faster decisions</span> with full compliance.
+                </p>
+                
+                <div class="stat-box" style="margin: 45px 0; padding: 45px;">
+                    <h2 style="color: white; margin-bottom: 35px; font-size: 2em;">Next Steps</h2>
+                    
+                    <div style="background: white; color: var(--text-dark); padding: 35px; text-align: left;">
+                        <p style="font-size: 1.1em; line-height: 2.2; margin: 0;">
+                            <strong style="color: var(--gold-dim);">01.</strong> Technical Discovery — Understand your specific challenges<br>
+                            <strong style="color: var(--gold-dim);">02.</strong> Data Assessment — Evaluate behavioral patterns in your flow<br>
+                            <strong style="color: var(--gold-dim);">03.</strong> Proof of Concept — Demonstrate value with your data<br>
+                            <strong style="color: var(--gold-dim);">04.</strong> Phased Implementation — Start with insights, scale to automation
+                        </p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 45px;">
+                    <a href="mailto:nestoras.neofytou@electiconsulting.com?subject=BABLO%20Discovery%20Session" class="button">
+                        Schedule Discovery Session
+                    </a>
+                </div>
+                
+                <div class="terminal-box" style="max-width: 700px; margin: 45px auto 0; text-align: left;">
+                    <p style="color: var(--gold);">> Decision speed determines market winners.</p>
+                    <p style="color: #888; margin-top: 10px;">> Make your decision before your competitors make theirs.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Navigation -->
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="previousSlide()">← PREV</button>
+        <span id="slideIndicator">01 / 10</span>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">NEXT →</button>
+    </div>
+
+    <script>
+        var currentSlide = 1;
+        var totalSlides = 10;
+        var glowTimeout;
+
+        function updateProgressSegments() {
+            var segments = document.querySelectorAll('.progress-segment');
+            segments.forEach(function(seg, index) {
+                var slideNum = index + 1;
+                seg.classList.remove('completed', 'active');
+                
+                if (slideNum < currentSlide) {
+                    seg.classList.add('completed');
+                } else if (slideNum === currentSlide) {
+                    seg.classList.add('completed', 'active');
+                }
+            });
+        }
+
+        function showSlide(n) {
+            var slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) currentSlide = totalSlides;
+            if (n < 1) currentSlide = 1;
+            
+            slides.forEach(function(slide) {
+                slide.classList.remove('active');
+                slide.scrollTop = 0;
+            });
+            
+            document.getElementById('slide' + currentSlide).classList.add('active');
+            
+            // Desktop progress
+            var progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('desktopProgress').style.width = progress + '%';
+            
+            // Desktop indicator
+            var slideNum = currentSlide.toString().padStart(2, '0');
+            document.getElementById('slideIndicator').textContent = slideNum + ' / ' + totalSlides;
+            
+            // Mobile position indicator
+            document.getElementById('positionIndicator').textContent = slideNum + ' / ' + totalSlides;
+            
+            // Update segmented progress
+            updateProgressSegments();
+            
+            // Update nav buttons
+            updateNavButtons();
+        }
+
+        function triggerEdgeGlow(direction) {
+            var glow = document.getElementById(direction === 'left' ? 'glowLeft' : 'glowRight');
+            glow.classList.add('active');
+            
+            clearTimeout(glowTimeout);
+            glowTimeout = setTimeout(function() {
+                glow.classList.remove('active');
+            }, 150);
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                triggerEdgeGlow('right');
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 1) {
+                triggerEdgeGlow('left');
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 1 && n <= totalSlides) {
+                currentSlide = n;
+                showSlide(currentSlide);
+            }
+        }
+        
+        function updateNavButtons() {
+            var prevBtn = document.getElementById('prevBtn');
+            var nextBtn = document.getElementById('nextBtn');
+            
+            if (currentSlide === 1) {
+                prevBtn.classList.add('disabled');
+            } else {
+                prevBtn.classList.remove('disabled');
+            }
+            
+            if (currentSlide === totalSlides) {
+                nextBtn.classList.add('disabled');
+            } else {
+                nextBtn.classList.remove('disabled');
+            }
+        }
+
+        // Tap zones
+        document.getElementById('tapLeft').addEventListener('click', function(e) {
+            e.stopPropagation();
+            previousSlide();
+        });
+        
+        document.getElementById('tapRight').addEventListener('click', function(e) {
+            e.stopPropagation();
+            nextSlide();
+        });
+
+        // Progress segment clicks (direct navigation)
+        document.querySelectorAll('.progress-segment').forEach(function(seg) {
+            seg.addEventListener('click', function() {
+                var targetSlide = parseInt(this.getAttribute('data-slide'));
+                goToSlide(targetSlide);
+            });
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            }
+            if (e.key >= '1' && e.key <= '9') {
+                goToSlide(parseInt(e.key));
+            }
+            if (e.key === '0') {
+                goToSlide(10);
+            }
+        });
+
+        // Touch/swipe support
+        var touchStartX = 0;
+        var touchEndX = 0;
+        var touchStartY = 0;
+        var touchEndY = 0;
+        var touchStartTime = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+            touchStartTime = Date.now();
+        }, { passive: true });
+
+        document.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            var touchDuration = Date.now() - touchStartTime;
+            
+            var xDiff = touchStartX - touchEndX;
+            var yDiff = touchStartY - touchEndY;
+            
+            if (Math.abs(xDiff) > 75 && Math.abs(xDiff) > Math.abs(yDiff) * 2 && touchDuration > 100) {
+                if (xDiff > 0) {
+                    nextSlide();
+                } else {
+                    previousSlide();
+                }
+            }
+        }, { passive: true });
+
+        // Hide position indicator after inactivity
+        var indicatorTimeout;
+        function resetIndicatorTimeout() {
+            var indicator = document.getElementById('positionIndicator');
+            indicator.classList.remove('hidden');
+            clearTimeout(indicatorTimeout);
+            indicatorTimeout = setTimeout(function() {
+                indicator.classList.add('hidden');
+            }, 3000);
+        }
+
+        document.addEventListener('touchstart', resetIndicatorTimeout, { passive: true });
+        document.addEventListener('click', resetIndicatorTimeout);
+
+        // Initialize
+        showSlide(1);
+        resetIndicatorTimeout();
+    </script>
+</body>
+</html>
